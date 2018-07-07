@@ -24,10 +24,7 @@ import static org.mybatis.generator.internal.util.StringUtility.stringContainsSp
 import static org.mybatis.generator.internal.util.StringUtility.stringHasValue;
 import static org.mybatis.generator.internal.util.messages.Messages.getString;
 
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -50,6 +47,7 @@ import org.mybatis.generator.config.GeneratedKey;
 import org.mybatis.generator.config.PropertyRegistry;
 import org.mybatis.generator.config.TableConfiguration;
 import org.mybatis.generator.internal.ObjectFactory;
+import org.mybatis.generator.internal.util.StringUtility;
 import org.mybatis.generator.logging.Log;
 import org.mybatis.generator.logging.LogFactory;
 
@@ -68,6 +66,8 @@ public class DatabaseIntrospector {
 
     private Log logger;
 
+    private OracleCommentsIntrospector oracleCommentsIntrospector;
+
     public DatabaseIntrospector(Context context,
             DatabaseMetaData databaseMetaData,
             JavaTypeResolver javaTypeResolver, List<String> warnings) {
@@ -77,6 +77,7 @@ public class DatabaseIntrospector {
         this.javaTypeResolver = javaTypeResolver;
         this.warnings = warnings;
         logger = LogFactory.getLog(getClass());
+        oracleCommentsIntrospector = new OracleCommentsIntrospector();
     }
 
     private void calculatePrimaryKey(FullyQualifiedTable table,
@@ -522,6 +523,13 @@ public class DatabaseIntrospector {
             }
         }
 
+        //add start
+        Map<String, String> colComments = null;
+        if (databaseMetaData.getClass().getName().contains("oracle")){
+            colComments = oracleCommentsIntrospector.getColComments(databaseMetaData.getConnection(), localTableName);
+        }
+        //add end
+
         while (rs.next()) {
             IntrospectedColumn introspectedColumn = ObjectFactory
                     .createIntrospectedColumn(context);
@@ -534,7 +542,15 @@ public class DatabaseIntrospector {
                     .setNullable(rs.getInt("NULLABLE") == DatabaseMetaData.columnNullable); //$NON-NLS-1$
             introspectedColumn.setScale(rs.getInt("DECIMAL_DIGITS")); //$NON-NLS-1$
             introspectedColumn.setRemarks(rs.getString("REMARKS")); //$NON-NLS-1$
-            introspectedColumn.setDefaultValue(rs.getString("COLUMN_DEF")); //$NON-NLS-1$
+
+            //add start
+            if (databaseMetaData.getClass().getName().contains("oracle")
+                    && introspectedColumn.getRemarks() == null
+                    && colComments != null){
+                introspectedColumn.setRemarks(colComments.get(introspectedColumn.getActualColumnName())); //$NON-NLS-1$
+            }
+            //add end
+            //introspectedColumn.setDefaultValue(rs.getString("COLUMN_DEF")); //$NON-NLS-1$
 
             if (supportsIsAutoIncrement) {
                 introspectedColumn.setAutoIncrement(
@@ -665,6 +681,12 @@ public class DatabaseIntrospector {
             if (rs.next()) {
                 String remarks = rs.getString("REMARKS"); //$NON-NLS-1$
                 String tableType = rs.getString("TABLE_TYPE"); //$NON-NLS-1$
+                // add start
+                if (databaseMetaData.getClass().getName().contains("oracle") && !StringUtility.stringHasValue(remarks)){
+                    Connection connection = databaseMetaData.getConnection();
+                    remarks = oracleCommentsIntrospector.getTableComment(connection,fqt.getIntrospectedTableName());
+                }
+                //add end
                 introspectedTable.setRemarks(remarks);
                 introspectedTable.setTableType(tableType);
             }
