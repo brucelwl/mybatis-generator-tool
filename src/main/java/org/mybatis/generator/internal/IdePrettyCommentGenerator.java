@@ -360,74 +360,92 @@ public class IdePrettyCommentGenerator implements CommentGenerator {
     @Override
     public void addGeneralMethodAnnotation(Method method, IntrospectedTable introspectedTable,
                                            Set<FullyQualifiedJavaType> imports) {
-        imports.add(new FullyQualifiedJavaType("javax.annotation.Generated")); //$NON-NLS-1$
-        String comment = "Source Table: " + introspectedTable.getFullyQualifiedTable().toString(); //$NON-NLS-1$
+        //imports.add(new FullyQualifiedJavaType("javax.annotation.Generated")); //$NON-NLS-1$
+        String comment = "source table: " + introspectedTable.getFullyQualifiedTable().toString(); //$NON-NLS-1$
         method.addAnnotation(getGeneratedAnnotation(comment));
     }
 
     @Override
     public void addGeneralMethodAnnotation(Method method, IntrospectedTable introspectedTable,
                                            IntrospectedColumn introspectedColumn, Set<FullyQualifiedJavaType> imports) {
-        imports.add(new FullyQualifiedJavaType("javax.annotation.Generated")); //$NON-NLS-1$
-        String comment = "Source field: " //$NON-NLS-1$
+        //imports.add(new FullyQualifiedJavaType("javax.annotation.Generated")); //$NON-NLS-1$
+        String comment = "source field: " //$NON-NLS-1$
                 + introspectedTable.getFullyQualifiedTable().toString()
                 + "." //$NON-NLS-1$
                 + introspectedColumn.getActualColumnName();
+        String remarks = introspectedColumn.getRemarks();
+        if (StringUtility.stringHasValue(remarks)) {
+            StringBuilder builder = new StringBuilder("database comment: ");
+            String[] remarkLines = remarks.split(System.getProperty("line.separator"));  //$NON-NLS-1$
+            for (String remarkLine : remarkLines) {
+                builder.append(remarkLine).append(",");
+            }
+            builder.append("<br>");
+            comment =  builder.toString() + comment;
+        }
         method.addAnnotation(getGeneratedAnnotation(comment));
     }
 
     @Override
     public void addFieldAnnotation(Field field, IntrospectedTable introspectedTable,
                                    Set<FullyQualifiedJavaType> imports) {
-        imports.add(new FullyQualifiedJavaType("javax.annotation.Generated")); //$NON-NLS-1$
-        String comment = "Source Table: " + introspectedTable.getFullyQualifiedTable().toString(); //$NON-NLS-1$
+        //imports.add(new FullyQualifiedJavaType("javax.annotation.Generated")); //$NON-NLS-1$
+        String comment = "source table: " + introspectedTable.getFullyQualifiedTable().toString(); //$NON-NLS-1$
         field.addAnnotation(getGeneratedAnnotation(comment));
     }
 
     @Override
     public void addFieldAnnotation(Field field, IntrospectedTable introspectedTable,
                                    IntrospectedColumn introspectedColumn, Set<FullyQualifiedJavaType> imports) {
-        imports.add(new FullyQualifiedJavaType("javax.annotation.Generated")); //$NON-NLS-1$
-        String comment = "Source field: " //$NON-NLS-1$
+        //imports.add(new FullyQualifiedJavaType("javax.annotation.Generated")); //$NON-NLS-1$
+
+        String comment = "source field: " //$NON-NLS-1$
                 + introspectedTable.getFullyQualifiedTable().toString()
                 + "." //$NON-NLS-1$
                 + introspectedColumn.getActualColumnName();
+
+        String remarks = introspectedColumn.getRemarks();
+        if (StringUtility.stringHasValue(remarks)) {
+            StringBuilder builder = new StringBuilder("database comment: ");
+            String[] remarkLines = remarks.split(System.getProperty("line.separator"));  //$NON-NLS-1$
+            for (String remarkLine : remarkLines) {
+                builder.append(remarkLine).append(",");
+            }
+            builder.append("<br>");
+            comment =  builder.toString() + comment;
+        }
+
         field.addAnnotation(getGeneratedAnnotation(comment));
     }
 
     @Override
     public void addClassAnnotation(InnerClass innerClass, IntrospectedTable introspectedTable,
                                    Set<FullyQualifiedJavaType> imports) {
-        imports.add(new FullyQualifiedJavaType("javax.annotation.Generated")); //$NON-NLS-1$
-        String comment = "Source Table: " + introspectedTable.getFullyQualifiedTable().toString(); //$NON-NLS-1$
+        //imports.add(new FullyQualifiedJavaType("javax.annotation.Generated")); //$NON-NLS-1$
+        String comment = "source table: " + introspectedTable.getFullyQualifiedTable().toString(); //$NON-NLS-1$
         innerClass.addAnnotation(getGeneratedAnnotation(comment));
     }
 
     private String getGeneratedAnnotation(String comment) {
-        StringBuilder buffer = new StringBuilder();
-        buffer.append("@Generated("); //$NON-NLS-1$
         if (suppressAllComments) {
+            return "";
+        }
+        StringBuilder buffer = new StringBuilder();
+        buffer.append("/**"); //$NON-NLS-1$
+        /*if (suppressAllComments) {
             buffer.append('\"');
         } else {
             buffer.append("value=\""); //$NON-NLS-1$
         }
 
         buffer.append(MyBatisGenerator.class.getName());
-        buffer.append('\"');
-
-        if (!suppressDate && !suppressAllComments) {
-            buffer.append(", date=\""); //$NON-NLS-1$
-            buffer.append(DatatypeConverter.printDateTime(Calendar.getInstance()));
-            buffer.append('\"');
-        }
+        buffer.append('\"');*/
 
         if (!suppressAllComments) {
-            buffer.append(", comments=\""); //$NON-NLS-1$
             buffer.append(comment);
-            buffer.append('\"');
         }
 
-        buffer.append(')');
+        buffer.append(" */");
         return buffer.toString();
     }
 }
