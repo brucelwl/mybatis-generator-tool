@@ -31,6 +31,8 @@ public class IdePrettyCommentGenerator implements CommentGenerator {
     /** If suppressAllComments is true, this option is ignored. */
     private boolean addRemarkComments;
 
+    private boolean showModelFieldColumnName; //
+
     private SimpleDateFormat dateFormat;
 
     public IdePrettyCommentGenerator() {
@@ -39,6 +41,7 @@ public class IdePrettyCommentGenerator implements CommentGenerator {
         suppressDate = false;
         suppressAllComments = false;
         addRemarkComments = false;
+        showModelFieldColumnName = true;
     }
 
     @Override
@@ -76,6 +79,8 @@ public class IdePrettyCommentGenerator implements CommentGenerator {
     @Override
     public void addConfigurationProperties(Properties properties) {
         this.properties.putAll(properties);
+
+        showModelFieldColumnName = isTrue(properties.getProperty("showModelFieldColumnName"));
 
         suppressDate = isTrue(properties
                 .getProperty(PropertyRegistry.COMMENT_GENERATOR_SUPPRESS_DATE));
@@ -233,18 +238,27 @@ public class IdePrettyCommentGenerator implements CommentGenerator {
         if (suppressAllComments) {
             return;
         }
-        field.addJavaDocLine("/**"); //$NON-NLS-1$
-        StringBuilder sb = new StringBuilder();
-        sb.append(" * Column: ");
-        sb.append(introspectedTable.getFullyQualifiedTable());
-        sb.append('.');
-        sb.append(introspectedColumn.getActualColumnName());
-        sb.append(" <br/>");
-        field.addJavaDocLine(sb.toString());
 
-        sb.setLength(0);
+        boolean isAddStart = false;
+        if (showModelFieldColumnName){
+            field.addJavaDocLine("/**"); //$NON-NLS-1$
+            isAddStart = true;
+            StringBuilder sb = new StringBuilder();
+            sb.append(" * Column: ");
+            sb.append(introspectedTable.getFullyQualifiedTable());
+            sb.append('.');
+            sb.append(introspectedColumn.getActualColumnName());
+            sb.append(" <br/>");
+            field.addJavaDocLine(sb.toString());
+        }
+
         String remarks = introspectedColumn.getRemarks();
         if (addRemarkComments && StringUtility.stringHasValue(remarks)) {
+            if(!isAddStart){
+                field.addJavaDocLine("/**"); //$NON-NLS-1$
+                isAddStart = true;
+            }
+            StringBuilder sb = new StringBuilder();
             //field.addJavaDocLine(" * Database Column Remarks:"); //$NON-NLS-1$
             String[] remarkLines = remarks.split(System.getProperty("line.separator"));  //$NON-NLS-1$
             sb.append(" * Comment: ");
@@ -256,7 +270,10 @@ public class IdePrettyCommentGenerator implements CommentGenerator {
             field.addJavaDocLine(sb.toString());
         }
 
-        field.addJavaDocLine(" */"); //$NON-NLS-1$
+        if(isAddStart){
+            field.addJavaDocLine(" */"); //$NON-NLS-1$
+        }
+
     }
 
     @Override
